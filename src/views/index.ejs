@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drugi projekt – sigurnost</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    section { border-top: 2px dashed #bbb; padding-top: 1rem; margin-top: 1.5rem; }
+    .upute { font-style: italic; color: #444; }
+    code, .sql { font-family: Consolas, monospace; background: #f3f3f3; padding: 0 .3em; }
+    .sql { display: block; padding: .6rem; white-space: pre-wrap; word-break: break-all; }
+    table { border-collapse: collapse; width: 100%; margin-top: .5rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem; text-align: left; }
+    .error { color: #b00020; font-weight: bold; }
+    .on { color: #b00020; } .off { color: #1b7a3d; }
+  </style>
+</head>
+<body>
+  <h1>Drugi projekt – sigurnosne ranjivosti</h1>
+
+  <section>
+    <h2>SQL umetanje (SQL Injection)</h2>
+    <p class="upute">
+      Upiši ime vlasnika (<code>ana</code>, <code>marko</code> ili <code>admin</code>) i dobit ćeš samo njegove bilješke.
+      Kad je ranjivost uključena, upiši tautologiju <code>' OR '1'='1</code> ili <code>' OR 1=1 --</code>
+      i dobit ćeš bilješke svih korisnika. Kad je isključena, isti unos ne vraća ništa.
+    </p>
+
+    <form method="post" action="/sqli">
+      <label>
+        <input type="checkbox" name="vulnerable" id="sqli-vulnerable"
+          <%= (sqli ? sqli.vulnerable : true) ? 'checked' : '' %>>
+        Ranjivost uključena
+      </label>
+      <p>
+        <label for="owner">Vlasnik:</label>
+        <input type="text" name="owner" id="owner" size="40" value="<%= sqli ? sqli.owner : '' %>">
+        <button>Pretraži bilješke</button>
+      </p>
+    </form>
+
+    <% if (sqli) { %>
+      <p>Način rada:
+        <strong class="<%= sqli.vulnerable ? 'on' : 'off' %>">
+          <%= sqli.vulnerable ? 'RANJIVO (spajanje teksta)' : 'SIGURNO (parametrizirani upit)' %>
+        </strong>
+      </p>
+      <p>Izvršeni SQL:</p>
+      <span class="sql"><%= sqli.sql %></span>
+      <% if (!sqli.vulnerable) { %>
+        <p>Parametar: <code><%= sqli.owner %></code></p>
+      <% } %>
+
+      <% if (sqli.error) { %>
+        <p class="error"><%= sqli.error %></p>
+      <% } else { %>
+        <p>Pronađeno zapisa: <strong><%= sqli.rows.length %></strong></p>
+        <% if (sqli.rows.length > 0) { %>
+          <table>
+            <tr><th>ID</th><th>Vlasnik</th><th>Naslov</th><th>Sadržaj</th></tr>
+            <% sqli.rows.forEach(r => { %>
+              <tr><td><%= r.id %></td><td><%= r.owner %></td><td><%= r.title %></td><td><%= r.content %></td></tr>
+            <% }) %>
+          </table>
+        <% } %>
+      <% } %>
+    <% } %>
+  </section>
+</body>
+</html>
