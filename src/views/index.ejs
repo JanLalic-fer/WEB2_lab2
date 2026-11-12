@@ -9,63 +9,104 @@
     section { border-top: 2px dashed #bbb; padding-top: 1rem; margin-top: 1.5rem; }
     .upute { font-style: italic; color: #444; }
     code, .sql { font-family: Consolas, monospace; background: #f3f3f3; padding: 0 .3em; }
-    .sql { display: block; padding: .6rem; white-space: pre-wrap; word-break: break-all; }
-    table { border-collapse: collapse; width: 100%; margin-top: .5rem; }
-    th, td { border: 1px solid #ccc; padding: .4rem; text-align: left; }
+    .sql, pre { font-family: Consolas, monospace; background: #f3f3f3; display: block; padding: .6rem; white-space: pre-wrap; word-break: break-all; }
+    table { border-collapse: collapse; width: 100%; margin-top: .5rem; font-size: .9rem; }
+    th, td { border: 1px solid #ccc; padding: .4rem; text-align: left; vertical-align: top; }
     .error { color: #b00020; font-weight: bold; }
+    .ok { color: #1b7a3d; font-weight: bold; }
     .on { color: #b00020; } .off { color: #1b7a3d; }
+    label { display: inline-block; }
   </style>
 </head>
 <body>
   <h1>Drugi projekt – sigurnosne ranjivosti</h1>
+  <% if (user) { %>
+    <p>Trenutno prijavljen: <strong><%= user %></strong>
+      <form method="post" action="/logout" style="display:inline"><button>Odjava</button></form></p>
+  <% } else { %>
+    <p>Trenutno niste prijavljeni.</p>
+  <% } %>
 
+  <!-- ============ SQL UMETANJE ============ -->
   <section>
     <h2>SQL umetanje (SQL Injection)</h2>
     <p class="upute">
-      Upiši ime vlasnika (<code>ana</code>, <code>marko</code> ili <code>admin</code>) i dobit ćeš samo njegove bilješke.
-      Kad je ranjivost uključena, upiši tautologiju <code>' OR '1'='1</code> ili <code>' OR 1=1 --</code>
-      i dobit ćeš bilješke svih korisnika. Kad je isključena, isti unos ne vraća ništa.
+      Upiši ime vlasnika (<code>ana</code>, <code>marko</code> ili <code>admin</code>) za njegove bilješke.
+      Kad je ranjivost uključena, upiši <code>' OR '1'='1</code> ili <code>' OR 1=1 --</code> i dobiješ bilješke svih.
+      Kad je isključena, isti unos ne vraća ništa.
     </p>
-
     <form method="post" action="/sqli">
-      <label>
-        <input type="checkbox" name="vulnerable" id="sqli-vulnerable"
-          <%= (sqli ? sqli.vulnerable : true) ? 'checked' : '' %>>
-        Ranjivost uključena
-      </label>
+      <label><input type="checkbox" name="vulnerable" <%= (sqli ? sqli.vulnerable : true) ? 'checked' : '' %>> Ranjivost uključena</label>
       <p>
         <label for="owner">Vlasnik:</label>
         <input type="text" name="owner" id="owner" size="40" value="<%= sqli ? sqli.owner : '' %>">
         <button>Pretraži bilješke</button>
       </p>
     </form>
-
     <% if (sqli) { %>
-      <p>Način rada:
-        <strong class="<%= sqli.vulnerable ? 'on' : 'off' %>">
-          <%= sqli.vulnerable ? 'RANJIVO (spajanje teksta)' : 'SIGURNO (parametrizirani upit)' %>
-        </strong>
-      </p>
-      <p>Izvršeni SQL:</p>
-      <span class="sql"><%= sqli.sql %></span>
-      <% if (!sqli.vulnerable) { %>
-        <p>Parametar: <code><%= sqli.owner %></code></p>
-      <% } %>
-
+      <p>Način rada: <strong class="<%= sqli.vulnerable ? 'on' : 'off' %>"><%= sqli.vulnerable ? 'RANJIVO (spajanje teksta)' : 'SIGURNO (parametrizirani upit)' %></strong></p>
+      <p>Izvršeni SQL:</p><span class="sql"><%= sqli.sql %></span>
+      <% if (!sqli.vulnerable) { %><p>Parametar: <code><%= sqli.owner %></code></p><% } %>
       <% if (sqli.error) { %>
         <p class="error"><%= sqli.error %></p>
       <% } else { %>
         <p>Pronađeno zapisa: <strong><%= sqli.rows.length %></strong></p>
-        <% if (sqli.rows.length > 0) { %>
-          <table>
-            <tr><th>ID</th><th>Vlasnik</th><th>Naslov</th><th>Sadržaj</th></tr>
-            <% sqli.rows.forEach(r => { %>
-              <tr><td><%= r.id %></td><td><%= r.owner %></td><td><%= r.title %></td><td><%= r.content %></td></tr>
-            <% }) %>
+        <% if (sqli.rows.length) { %>
+          <table><tr><th>ID</th><th>Vlasnik</th><th>Naslov</th><th>Sadržaj</th></tr>
+            <% sqli.rows.forEach(r => { %><tr><td><%= r.id %></td><td><%= r.owner %></td><td><%= r.title %></td><td><%= r.content %></td></tr><% }) %>
           </table>
         <% } %>
       <% } %>
     <% } %>
+  </section>
+
+  <!-- ============ LOŠA AUTENTIFIKACIJA ============ -->
+  <section>
+    <h2>Loša autentifikacija (Broken Authentication)</h2>
+    <p class="upute">
+      Testni računi: <code>ana / ana123</code>, <code>marko / qwerty</code>, <code>admin / fer2026</code>.
+      Kad je ranjivost uključena: neograničeni pokušaji, poruka otkriva griješiš li u imenu ili lozinci,
+      lozinke su čisti tekst, a kolačić sesije je bez <code>HttpOnly</code> (vidljiv dolje u <code>document.cookie</code>).
+      Kad je isključena: zaključavanje nakon 3 pokušaja, generička poruka, hash lozinki, <code>HttpOnly</code> kolačić.
+    </p>
+    <form method="post" action="/login">
+      <label><input type="checkbox" name="vulnerable" <%= (login ? login.vulnerable : true) ? 'checked' : '' %>> Ranjivost uključena</label>
+      <p>
+        <label>Korisnik: <input type="text" name="username" value="<%= login ? login.username : '' %>"></label>
+        <label>Lozinka: <input type="password" name="password"></label>
+        <button>Prijava</button>
+      </p>
+    </form>
+    <% if (login && login.message) { %>
+      <p class="<%= login.ok ? 'ok' : 'error' %>"><%= login.message %></p>
+    <% } %>
+
+    <p>Vrijednost <code>document.cookie</code> (ono što vidi JavaScript u pregledniku):</p>
+    <pre id="cookie-box"></pre>
+    <script>
+      document.getElementById('cookie-box').textContent =
+        document.cookie || '(prazno — nijedan kolačić nije dostupan JavaScriptu)';
+    </script>
+
+    <h3>Zapisnik pokušaja prijave</h3>
+    <% if (loginLog.length === 0) { %><p>Još nema pokušaja.</p><% } else { %>
+      <table><tr><th>Vrijeme</th><th>Korisnik</th><th>Način</th><th>Ishod</th></tr>
+        <% loginLog.forEach(a => { %>
+          <tr><td><%= a.time %></td><td><%= a.username %></td><td><%= a.mode %></td>
+            <td class="<%= a.ok ? 'ok' : 'error' %>"><%= a.ok ? 'USPJEH' : 'neuspjeh' %></td></tr>
+        <% }) %>
+      </table>
+    <% } %>
+
+    <h3>Sadržaj tablice korisnika</h3>
+    <table>
+      <tr><th>ID</th><th>Korisnik</th><th>Lozinka (čisti tekst)</th><th>Hash (salt:hash)</th><th>Neuspjeli</th><th>Zaključan?</th></tr>
+      <% users.forEach(u => { %>
+        <tr><td><%= u.id %></td><td><%= u.username %></td><td><%= u.password_plain %></td>
+          <td style="max-width:260px; overflow-wrap:anywhere"><%= u.password_hash %></td>
+          <td><%= u.failed_attempts %></td><td><%= u.locked_until > now ? 'DA' : 'ne' %></td></tr>
+      <% }) %>
+    </table>
   </section>
 </body>
 </html>
