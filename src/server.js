@@ -84,18 +84,17 @@ app.post('/login', (req, res) => {
   let ok = false, message, loggedIn;
 
   if (vulnerable) {
-    // RANJIVO: usporedba s čistim tekstom, bez zaključavanja,
-    // poruka otkriva griješiš li u imenu ili lozinci, kolačić bez HttpOnly
+    // RANJIVO: poruka otkriva detalje, bez zaključavanja, kolačić bez HttpOnly
     if (!user) {
       message = `Korisnik "${username}" ne postoji.`;
-    } else if (user.password_plain !== password) {
+    } else if (!verifyPassword(password, user.password_hash)) {
       message = 'Lozinka nije ispravna.';
     } else {
       res.setHeader('Set-Cookie', `sid=${createSession(username)}; Path=/`);
       ok = true; loggedIn = username; message = `Prijavljen kao ${username}.`;
     }
   } else {
-    // SIGURNO: hash, zaključavanje nakon 3 pokušaja, generička poruka, HttpOnly
+    // SIGURNO: zaključavanje nakon 3 pokušaja, generička poruka, HttpOnly
     const now = Date.now();
     if (user && user.locked_until > now) {
       message = 'Previše pokušaja. Račun je privremeno zaključan (5 min).';

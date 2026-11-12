@@ -66,8 +66,8 @@
     <p class="upute">
       Testni računi: <code>ana / ana123</code>, <code>marko / qwerty</code>, <code>admin / fer2026</code>.
       Kad je ranjivost uključena: neograničeni pokušaji, poruka otkriva je li pogrešno ime ili lozinka,
-      lozinke su čisti tekst, a kolačić sesije je bez <code>HttpOnly</code> (vidljiv dolje u <code>document.cookie</code>).
-      Kad je isključena: zaključavanje nakon 3 pokušaja, generička poruka, hash lozinki, <code>HttpOnly</code> kolačić.
+      a kolačić sesije je bez <code>HttpOnly</code> (vidljiv dolje u <code>document.cookie</code>).
+      Kad je isključena: zaključavanje nakon 3 pokušaja, generička poruka, <code>HttpOnly</code> kolačić.
     </p>
     <form method="post" action="/login">
       <label><input type="checkbox" name="vulnerable" <%= (login ? login.vulnerable : true) ? 'checked' : '' %>> Ranjivost uključena</label>
@@ -98,12 +98,12 @@
       </table>
     <% } %>
 
-    <h3>Sadržaj tablice korisnika</h3>
+    <h3>Sadržaj tablice korisnika - prikazano samo radi lakseg pračenja funkcionalnosti koda</h3>
     <table>
-      <tr><th>ID</th><th>Korisnik</th><th>Lozinka (čisti tekst)</th><th>Hash (salt:hash)</th><th>Neuspjeli</th><th>Zaključan?</th></tr>
+      <tr><th>ID</th><th>Korisnik</th><th>Hash lozinke (salt:hash)</th><th>Neuspjeli</th><th>Zaključan?</th></tr>
       <% users.forEach(u => { %>
-        <tr><td><%= u.id %></td><td><%= u.username %></td><td><%= u.password_plain %></td>
-          <td style="max-width:260px; overflow-wrap:anywhere"><%= u.password_hash %></td>
+        <tr><td><%= u.id %></td><td><%= u.username %></td>
+          <td style="max-width:320px; overflow-wrap:anywhere"><%= u.password_hash %></td>
           <td><%= u.failed_attempts %></td><td><%= u.locked_until > now ? 'DA' : 'ne' %></td></tr>
       <% }) %>
     </table>

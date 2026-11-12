@@ -50,21 +50,18 @@ db.exec(`
   CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
-    password_plain TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     failed_attempts INTEGER NOT NULL DEFAULT 0,
     locked_until INTEGER NOT NULL DEFAULT 0
   );
 `);
 
-const insertUser = db.prepare(
-  'INSERT INTO users (username, password_plain, password_hash) VALUES (?, ?, ?)'
-);
+const insertUser = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
 [
   ['ana', 'ana123'],
   ['marko', 'qwerty'],
   ['admin', 'fer2026'],
-].forEach(([u, p]) => insertUser.run(u, p, hashPassword(p)));
+].forEach(([u, p]) => insertUser.run(u, hashPassword(p)));
 
 export function getUser(username) {
   return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
